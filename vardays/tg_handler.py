@@ -6,9 +6,7 @@ from time import sleep
 from tg_bot import *
 from scrapper import Scrapper
 from tg_bot import Subscribe, bot
-
-with open("settings.json", encoding='utf-8') as file:
-    settings = json.load(file)
+from settings import settings
 
 GROUPS = settings["groups"]
 
@@ -48,4 +46,4 @@ class TgHandler:
 
 if __name__ == "__main__":
     tg_handler = TgHandler(bot, db, scrapper)
-    tg_handler.start_cycle(10)
+    tg_handler.start_cycle(settings.cycle_period)

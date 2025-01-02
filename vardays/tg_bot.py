@@ -1,14 +1,13 @@
 import threading
-from idlelib.autocomplete import TRY_A
 from typing import List
 import telebot
-from telebot_calendar import CallbackData
-from scrapper import *
+from scrapper import Scrapper
+import logging
+import sqlite3
+import datetime
 import json
 from telebot_dialogue import Dialogue, DialogueManager
-
-with open("settings.json", encoding='utf-8') as file:
-    settings = json.load(file)
+from settings import settings, logger
 
 db = settings["db"]
 dialogue_manager = DialogueManager()
@@ -458,7 +457,7 @@ def get_changes_by_date_group(dialogue):
 
     dialogue_manager.finish_dialogue(dialogue.user_id)
 
-@bot.message_handler(content_types=["text"])
+@bot.message_handler(content_types=["text"], func=lambda message: not message.text.startswith("/"))
 def multihandler(message):
     logger.info(f"User {message.from_user.id} sent message: {message.text}")
     dialogue_manager.handle_message(message)

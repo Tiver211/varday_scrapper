@@ -6,11 +6,10 @@ import sqlite3
 from PyPDF2 import PdfReader
 import logging
 import shutil
+from settings import logger
 
 from asyncpg.pgproto.pgproto import timedelta
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 class Scrapper:
     def __init__(self,
@@ -55,8 +54,10 @@ class Scrapper:
 
         text = "".join(parsed_text)
         date = self.__get_date_from_text(text)
-    
-        if not date:
+
+        previos_changes = self.get_last_varday(group)
+        print(previos_changes)
+        if not date or date <= previos_changes[1]+timedelta(days=180):
             logger.warning("No date found in the PDF")
             return False
     
@@ -76,7 +77,7 @@ class Scrapper:
         if alr_changes and alr_changes[2] == changes:
             logger.debug(f"Changes for group {group} are up-to-date")
             return True
-    
+
         if alr_changes and alr_changes[2] != changes or not alr_changes:
             self.cursor.execute('''INSERT OR REPLACE INTO Changes(date, changes, group_for) VALUES (?, ?, ?)''',
                                 (date.strftime("%d-%m-%Y"), str(changes), group))
