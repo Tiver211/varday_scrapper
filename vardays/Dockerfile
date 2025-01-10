@@ -9,7 +9,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем все файлы проекта, кроме указанных в .dockerignore
-COPY . *.py
+COPY . .
 
 # Команда для запуска основного скрипта
 CMD ["python", "main.py"]

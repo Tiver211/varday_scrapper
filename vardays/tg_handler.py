@@ -5,7 +5,7 @@ from telebot import TeleBot
 from time import sleep
 from tg_bot import *
 from scrapper import Scrapper
-from tg_bot import Subscribe, bot
+from tg_bot import Subscribe, bot, scrapper, db
 from settings import settings
 
 GROUPS = settings["groups"]
@@ -26,13 +26,15 @@ class TgHandler:
         for group in GROUPS:
             self.scrapper.update_varday(group)
             changes = self.scrapper.get_last_varday(group)
+            if not changes:
+                continue
             subscribers = get_subscribers(group)
             for subscriber in subscribers:
-                if changes[1] > subscriber.last_update:
+                if changes[1] > subscriber.last_update or subscriber.last_change != changes[0]:
                     self.send_message(subscriber, changes[0], changes[1])
 
     def send_message(self, subsctiption: Subscribe, message, date):
-        answer = f'Появилсь изменения для класса {subsctiption.subgroup} на {date}: {message}'
+        answer = f'Появилсь изменения для класса {subsctiption.subgroup} на {date.strftime("%d.%m.%Y")}: {message}'
         try:
             update_subscription(subsctiption, message, date)
             self.bot.send_message(subsctiption.user_id, answer)

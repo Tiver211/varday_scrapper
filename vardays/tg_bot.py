@@ -1,3 +1,4 @@
+import os
 import threading
 from typing import List
 import telebot
@@ -77,7 +78,7 @@ def get_subscriptions(user_id: int) -> [Subscribe]:
                    (user_id,))
     res = []
     for sub in cursor.fetchall():
-        res.append(Subscribe(user_id, sub[0], datetime.datetime.strptime(sub[1], "%d-%m-%Y").date(), sub[2]))
+        res.append(Subscribe(user_id, sub[0], datetime.datetime.strptime(sub[1], "%Y-%m-%d").date(), sub[2]))
 
     return res
 
@@ -95,7 +96,7 @@ def find_subscription(user_id, group):
 def add_subscription(user_id: int, subgroup: str) -> None:
     logger.info(f"Adding subscription for user {user_id} and group {subgroup}")
     cursor.execute("""INSERT INTO Subs(user_id, subgroup, last_update, last_change) VALUES(?,?,?,?)""",
-                   (user_id, subgroup, datetime.date.today().strftime("%d-%m-%Y"), scrapper.get_varday(subgroup, datetime.date.today())[0] if scrapper.get_varday(subgroup, datetime.date.today()) else "None",))
+                   (user_id, subgroup, datetime.date.today().strftime("%Y-%m-%d"), scrapper.get_varday(subgroup, datetime.date.today())[0] if scrapper.get_varday(subgroup, datetime.date.today()) else "None",))
     conn.commit()
 
 def check_subscription(subscription: Subscribe) -> bool:
@@ -116,14 +117,14 @@ def get_subscribers(group: str) -> List[Subscribe]:
                    (group,))
     res = []
     for sub in cursor.fetchall():
-        res.append(Subscribe(int(sub[1]), sub[2], datetime.datetime.strptime(sub[3], "%d-%m-%Y").date(), sub[4]))
+        res.append(Subscribe(int(sub[1]), sub[2], datetime.datetime.strptime(sub[3], "%Y-%m-%d").date(), sub[4]))
 
     return res
 
 def update_subscription(subscription: Subscribe, new_changes, new_date: datetime.date) -> bool:
     logger.info(f"Updating subscription for user {subscription.user_id} and group {subscription.subgroup}")
     cursor.execute("""UPDATE Subs SET last_change=?, last_update=? WHERE user_id=? AND subgroup=?""",
-                   (new_changes, new_date.strftime("%d-%m-%Y"), subscription.user_id, subscription.subgroup))
+                   (new_changes, new_date.strftime("%Y-%m-%d"), subscription.user_id, subscription.subgroup))
     conn.commit()
     return bool(cursor.rowcount)
 
@@ -403,13 +404,13 @@ def changes_tomorrow(call):
     logger.info(f"User {call.from_user.id} requested changes tomorrow")
     if not dialogue_manager.find_dialogue(call.message.chat.id):
         dialogue = Dialogue(call.message.chat.id, handler=get_group_for_chages)
-        dialogue.update_context("date", datetime.date.today()+timedelta(days=1))
+        dialogue.update_context("date", datetime.date.today() + datetime.timedelta(days=1))
         dialogue_manager.add_dialogue(dialogue)
 
     else:
         with dialogue_manager.update(call.message.chat.id) as dialogue:
             dialogue.handler = get_group_for_chages
-            dialogue.update_context("date", datetime.date.today()+timedelta(days=1))
+            dialogue.update_context("date", datetime.date.today() + datetime.timedelta(days=1))
     bot.send_message(call.message.chat.id, "Теперь введите класс:")
 
 

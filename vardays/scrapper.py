@@ -56,9 +56,11 @@ class Scrapper:
         date = self.__get_date_from_text(text)
 
         previos_changes = self.get_last_varday(group)
-        print(previos_changes)
-        if not date or date <= previos_changes[1]+timedelta(days=180):
-            logger.warning("No date found in the PDF")
+        if not previos_changes:
+            previos_changes = (None, datetime.date.max-datetime.timedelta(days=180))
+
+        if not date or not date <= previos_changes[1]+timedelta(days=180):
+            logger.warning("No date found in the PDF or year incorrect")
             return False
     
         path = os.path.join("pdf_files", f"{date}.pdf")
@@ -67,12 +69,13 @@ class Scrapper:
         logger.debug(f"PDF renamed to {path}")
     
         changes = self.__get_changes_for_group(text, group)
+        
         if not changes:
             logger.debug(f"No changes found for group {group}")
             return None
     
         self.cursor.execute('''SELECT * FROM Changes WHERE group_for=? AND date=? LIMIT 1''',
-                            (group, date.strftime("%d-%m-%Y")))
+                            (group, date.strftime("%Y-%m-%d")))
         alr_changes = self.cursor.fetchone()
         if alr_changes and alr_changes[2] == changes:
             logger.debug(f"Changes for group {group} are up-to-date")
@@ -80,7 +83,7 @@ class Scrapper:
 
         if alr_changes and alr_changes[2] != changes or not alr_changes:
             self.cursor.execute('''INSERT OR REPLACE INTO Changes(date, changes, group_for) VALUES (?, ?, ?)''',
-                                (date.strftime("%d-%m-%Y"), str(changes), group))
+                                (date.strftime("%Y-%m-%d"), str(changes), group))
             self.conn.commit()
             logger.debug(f"Changes for group {group} updated in the database")
     
@@ -91,7 +94,7 @@ class Scrapper:
                    date: datetime.date = datetime.date.today()+timedelta(days=1)
                    ) -> tuple[str, datetime.date] | None:
         self.cursor.execute('''SELECT * FROM Changes WHERE group_for=? AND date=? LIMIT 1''',
-                            (group, date.strftime("%d-%m-%Y")))
+                            (group, date.strftime("%Y-%m-%d")))
         data = self.cursor.fetchone()
         if data:
             return data[2], data[1]
@@ -115,7 +118,7 @@ class Scrapper:
 
             result = self.cursor.fetchone()
             if result:
-                return (result[1], datetime.datetime.strptime(result[0], "%d-%m-%Y").date())
+                return (result[1], datetime.datetime.strptime(result[0], "%Y-%m-%d").date())
             else:
                 return False
         except Exception as e:
@@ -124,8 +127,8 @@ class Scrapper:
     @staticmethod
     def __get_changes_for_group(text, group):
         logger.debug(f"Searching for changes for group {group}")
-        pattern = rf"({group})\s*–\s*([^\n]+)"
-        matches = re.findall(pattern, text)
+        pattern = rf"({group})\s*-\s*([^\n]+)"
+        matches = re.findall(pattern, text.lower())
 
         if matches:
             logger.debug(f"Changes found for group {group}")
@@ -141,12 +144,14 @@ class Scrapper:
             year = datetime.date.today().year
 
         first_line = text.splitlines()[0]
-
+        
         match = re.search(r'(\d{1,2})\.(\d{1,2})', first_line)
+        
         if match:
             day, month = map(int, match.groups())
             date = datetime.date(year, month, day)
             logger.debug(f"Date extracted: {date}")
+            
             return date
 
         logger.warning("No date found in the text")
@@ -158,6 +163,8 @@ class Scrapper:
 
 if __name__ == '__main__':
     scrapper = Scrapper()
-    print(scrapper.update_varday("8в"))
-    print(scrapper.get_varday("8в", datetime.date(2022, 1, 1)))
-    print(scrapper.get_last_varday("8в"))
+    print(scrapper.update_varday("5в"))
+    print(scrapper.get_varday("5в", datetime.date(2022, 1, 1)))
+    print(scrapper.get_last_varday("5в"))
+    
+    
