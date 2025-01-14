@@ -143,9 +143,8 @@ class Scrapper:
         if year is None:
             year = datetime.date.today().year
 
-        first_line = text.splitlines()[0]
-        
-        match = re.search(r'(\d{1,2})\.(\d{1,2})', first_line)
+
+        match = re.search(r'(\d{1,2})\.(\d{1,2})', text)
         
         if match:
             day, month = map(int, match.groups())
